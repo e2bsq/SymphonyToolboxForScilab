@@ -1,0 +1,25 @@
+# Scilab generates these by itself
+cleaner.sce
+loader.sce
+libsymphonytools.c
+
+# Libraries
+*.so
+
+# gedit temporary files
+*~
+
+# Generated help files
+help/master_help.xml
+help/scilab_help_help/*
+help/addchapter.sce
+
+# Help generator files
+helpgenerator/*
+!helpgenerator/exampleinput.txt
+!helpgenerator/helpgen.py
+!helpgenerator/template.txt
+
+# Other
+*.pdf
+*.gz

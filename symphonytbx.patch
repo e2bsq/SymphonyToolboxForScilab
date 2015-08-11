@@ -1,0 +1,114 @@
+diff --git a/builder.sce b/builder.sce
+index ec890d9..7739d14 100644
+--- a/builder.sce
++++ b/builder.sce
+@@ -5,9 +5,20 @@ lines(0)
+ //By Keyur Joshi, Sai Kiran and Iswarya
+ 
+ // By default, just link to symphony library installed in the system, say in /usr/lib
+-LINKER_FLAGS=["-w -fpermissive -I/usr/include/coin -lSym"];
++//LINKER_FLAGS=["-w -fpermissive -I/usr/include/coin -lSym"];
+ // Or uncomment this to set a path to a locally installed copy of symphony
+-//LINKER_FLAGS=["-w -fpermissive -I/home/amahajan/projects/symphony/trunk/build2/include/coin -Wl,-rpath=/home/amahajan/projects/symphony/trunk/build2/lib -L/home/amahajan/projects/symphony/trunk/build2/lib -lSym"];
++LINKER_FLAGS=["-w -fpermissive "]
++gateway_path = get_absolute_file_path("builder.sce");
++lib_path = "C:\Users\basquiat\Documents\Toolboxes-indiens\SYMPHONY-5.6\SYMPHONY\include";
++lib_path = [lib_path; gateway_path];
++CFLAGS = ilib_include_flag(lib_path);
++
++LDLIBS = findfiles('C:\Users\basquiat\Documents\Toolboxes-indiens\SYMPHONY-5.6\SYMPHONY\MSVisualStudio\v10\x64-v120-Debug', '*.lib');
++LDLIBS = part(LDLIBS, 1:$-4);
++LDLIBS = "C:\Users\basquiat\Documents\Toolboxes-indiens\SYMPHONY-5.6\SYMPHONY\MSVisualStudio\v10\x64-v120-Debug\" + LDLIBS;
++
++//LINKER_FLAGS=["-w -fpermissive -I/home/amahajan/projects/symphony/trunk/build2/include/coin -Wl,
++//-rpath=/home/amahajan/projects/symphony/trunk/build2/lib -L/home/amahajan/projects/symphony/trunk/build2/lib -lSym"];
+ 
+ WITHOUT_AUTO_PUTLHSVAR = %t;
+ toolbox_title = "symphonytools"
+@@ -120,7 +131,7 @@ tbx_build_gateway(toolbox_title, ..
+ 		"sci_sym_getobjsense.cpp",
+ 		"sci_sym_remove.cpp",
+ 	], ..
+-	get_absolute_file_path("builder.sce"), [], ["-lSym"], LINKER_FLAGS, [], "g++");
++	get_absolute_file_path("builder.sce"), LDLIBS, "-lSym", CFLAGS, "", "");
+ 
+ tbx_builder_help(get_absolute_file_path("builder.sce"));
+ 
+diff --git a/sci_sym_loadproblem.cpp b/sci_sym_loadproblem.cpp
+index d8e0dc7..d45caeb 100644
+--- a/sci_sym_loadproblem.cpp
++++ b/sci_sym_loadproblem.cpp
+@@ -27,7 +27,7 @@ static char *conType=NULL,*isIntVar=NULL;
+ 
+ //delete all allocd arrays before exit, and return output argument
+ static void cleanupBeforeExit()
+-	{
++{
+ 	if(conMatrixColStart) delete[] conMatrixColStart;
+ 	if(conMatrixRowIndex) delete[] conMatrixRowIndex;
+ 	if(isIntVar) delete[] isIntVar;
+@@ -41,8 +41,9 @@ static void cleanupBeforeExit()
+ 		AssignOutputVariable(pvApiCtx, 1) = 0;
+ 		return;
+ 	}
++	
+ 	AssignOutputVariable(pvApiCtx, 1) = nbInputArgument(pvApiCtx)+1;
+-	ReturnArguments(pvApiCtx);
++	returnArguments(pvApiCtx);
+ }
+ 
+ static int checkNumArgs()
+diff --git a/sci_sym_remove.cpp b/sci_sym_remove.cpp
+index d4e9c49..a978ecf 100644
+--- a/sci_sym_remove.cpp
++++ b/sci_sym_remove.cpp
+@@ -14,6 +14,7 @@ extern "C" {
+ #include <BOOL.h>
+ #include <localization.h>
+ #include <sciprint.h>
++#include <stdlib.h>
+ //function to remove specified columns
+ int sci_sym_delete_cols(char *fname, unsigned long fname_len){
+ 	
+@@ -98,7 +99,7 @@ int sci_sym_delete_cols(char *fname, unsigned long fname_len){
+ 		}
+ 		//only when the number of columns to be deleted is lesser than the actual number of columns ,execution is proceeded with
+ 		if(columns<=num_cols){
+-		output=sym_delete_cols(global_sym_env,(unsigned int)columns,value);//symphony function to delete the columns specified
++		output=sym_delete_cols(global_sym_env,(unsigned int)columns,(int *)value);//symphony function to delete the columns specified
+ 		if(output==FUNCTION_TERMINATED_NORMALLY)
+ 		{
+ 			sciprint("Execution is successfull\n");
+@@ -214,7 +215,7 @@ int sci_sym_delete_rows(char *fname, unsigned long fname_len){
+ 		}
+ 		//only when the number of rows to be deleted is lesser than the actual number of rows ,execution is proceeded with
+ 		if(columns<=num_rows){
+-		output=sym_delete_rows(global_sym_env,(unsigned int)columns,value);//symphony function to delete the rows specified
++		output=sym_delete_rows(global_sym_env,(unsigned int)columns,(int *)value);//symphony function to delete the rows specified
+ 		if(output==FUNCTION_TERMINATED_NORMALLY)
+ 		{
+ 			sciprint("Execution is successfull\n");
+diff --git a/sym_data_query_functions.cpp b/sym_data_query_functions.cpp
+index b0d0989..a9303ef 100644
+--- a/sym_data_query_functions.cpp
++++ b/sym_data_query_functions.cpp
+@@ -15,8 +15,9 @@ extern "C" {
+ #include <BOOL.h>
+ #include <localization.h>
+ #include <sciprint.h>
+-
++#include <stdlib.h>
+ #include <string.h>
++#include <stdio.h>
+ 
+ // Function to print termination status of a function
+ void show_termination_status(int status) {
+@@ -185,7 +186,7 @@ int sci_sym_get_row_sense(char *fname, unsigned long fname_len) {
+ 	else {
+ 		int status=sym_get_num_rows(global_sym_env,&num_rows);
+ 		if (status != FUNCTION_TERMINATED_ABNORMALLY) { //If function terminated normally
+-			char senses[num_rows];
++			char * senses=new char[num_rows];
+ 			char *ptr=senses;
+ 			// Take rows sense from symphony
+ 			int status1=sym_get_row_sense(global_sym_env,ptr);
